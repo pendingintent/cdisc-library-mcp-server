@@ -48,17 +48,43 @@ class CDISCLibraryClient:
             )
         return response.json()
 
+    _COSMOS_V2_PREFIX = "/cosmos/v2"
+
+    async def _get_cosmos(self, path: str) -> dict[str, Any]:
+        """GET a path or href from the COSMoS v2 sub-API (BC / SDTM / CRF specializations).
+
+        Hrefs embedded in COSMoS v2 responses (e.g. "/mdr/bc/biomedicalconcepts/C105585")
+        are relative to the /cosmos/v2 sub-root rather than the API root that `get()`
+        otherwise assumes for hrefs, so this prefixes them before delegating to `get()`.
+        """
+        if not path.startswith(self._COSMOS_V2_PREFIX):
+            path = f"{self._COSMOS_V2_PREFIX}{path}"
+        return await self.get(path)
+
     async def search_biomedical_concepts(self, query: str) -> dict[str, Any]:
         """Search the Biomedical Concepts catalog by name/synonym substring."""
-        catalog = await self.get("/mdr/specializations/biomedicalconcepts")
+        catalog = await self._get_cosmos("/mdr/bc/biomedicalconcepts")
         items = catalog.get("_links", {}).get("biomedicalConcepts", [])
         needle = query.lower()
         matches = [item for item in items if needle in item.get("title", "").lower()]
         return {"query": query, "matches": matches}
 
     async def get_biomedical_concept(self, concept_id: str) -> dict[str, Any]:
-        """Fetch a single Biomedical Concept by its short name/id."""
-        return await self.get(f"/mdr/specializations/biomedicalconcepts/{concept_id}")
+        """Fetch a single Biomedical Concept by its short name/id.
+
+        The catalog only exposes concepts via `_links` hrefs (e.g.
+        "/mdr/bc/biomedicalconcepts/C105585"), not a predictable
+        `/biomedicalconcepts/{id}` route, so this resolves `concept_id` against
+        the catalog's titles and follows the matching href.
+        """
+        catalog = await self._get_cosmos("/mdr/bc/biomedicalconcepts")
+        items = catalog.get("_links", {}).get("biomedicalConcepts", [])
+        needle = concept_id.lower().replace(" ", "").replace("_", "").replace("-", "")
+        for item in items:
+            title = item.get("title", "")
+            if title.lower().replace(" ", "") == needle:
+                return await self._get_cosmos(item["href"])
+        raise CDISCLibraryError(f"No Biomedical Concept found matching {concept_id!r}")
 
     async def list_product_families(self) -> dict[str, Any]:
         """List the top-level product families (standards, terminology, models, ...)."""
