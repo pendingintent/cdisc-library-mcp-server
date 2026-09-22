@@ -3,4 +3,4 @@ dist/
 .mcpb-build/
 *.mcpb
 .env
-.mcp.json
+.claudelint-cache/
