@@ -97,4 +97,19 @@ The CDISC Library API is hypermedia-driven (HATEOAS): most responses embed an
 every route. The `cdisc_get` tool accepts any path or href so clients can walk
 the API from `/mdr/products` outward; a handful of other tools wrap common
 lookups (Biomedical Concepts, Controlled Terminology packages/codelists) that
-are worth a friendlier interface.
+are worth a friendlier interface. `CDISCLibraryClient.get()` only follows hrefs
+that resolve to the configured CDISC Library host — an absolute URL pointing
+elsewhere is rejected before the request is made, since the client attaches
+the API key to every request it sends.
+
+## Distribution
+
+For the first packaged version (MCPB), this server is distributed as a
+**local** bundle rather than a remote-hosted server: each user supplies their
+own `CDISC_API_KEY`, which matches per-user CDISC Library entitlements more
+directly than a single centrally-held key would. Revisit remote hosting later
+if that licensing model changes.
+
+## License
+
+[MIT](LICENSE)

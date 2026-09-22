@@ -57,6 +57,29 @@ async def test_get_strips_full_base_url_prefix(client):
 
 
 @respx.mock
+async def test_get_rejects_absolute_url_on_a_different_host(client):
+    route = respx.get("https://attacker.example/x").mock(
+        return_value=httpx.Response(200, json={"leaked": True})
+    )
+
+    with pytest.raises(CDISCLibraryError):
+        await client.get("https://attacker.example/x")
+
+    assert not route.called
+
+
+@respx.mock
+async def test_get_raises_when_response_exceeds_size_guard(client):
+    oversized = {"data": "x" * (client._MAX_RESPONSE_BYTES + 1)}
+    respx.get("https://library.cdisc.org/api/mdr/ct/packages/big").mock(
+        return_value=httpx.Response(200, json=oversized)
+    )
+
+    with pytest.raises(CDISCLibraryError):
+        await client.get("/mdr/ct/packages/big")
+
+
+@respx.mock
 async def test_search_biomedical_concepts_filters_by_title(client):
     respx.get("https://library.cdisc.org/api/cosmos/v2/mdr/bc/biomedicalconcepts").mock(
         return_value=httpx.Response(200, json=BC_CATALOG)
@@ -66,6 +89,18 @@ async def test_search_biomedical_concepts_filters_by_title(client):
 
     assert len(result["matches"]) == 1
     assert result["matches"][0]["href"] == "/mdr/bc/biomedicalconcepts/C1"
+
+
+@respx.mock
+async def test_bc_catalog_is_fetched_once_per_client(client):
+    route = respx.get("https://library.cdisc.org/api/cosmos/v2/mdr/bc/biomedicalconcepts").mock(
+        return_value=httpx.Response(200, json=BC_CATALOG)
+    )
+
+    await client.search_biomedical_concepts("blood pressure")
+    await client.search_biomedical_concepts("heart rate")
+
+    assert route.call_count == 1
 
 
 @respx.mock
