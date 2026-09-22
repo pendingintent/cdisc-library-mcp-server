@@ -1,0 +1,30 @@
+{
+  "name": "cdisc-library-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server exposing the CDISC Library API (standards metadata, controlled terminology, biomedical concepts) to MCP clients.",
+  "type": "module",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "package:mcpb": "npm run build && node scripts/build-bundle.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "dotenv": "^18.0.3",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "undici": "^8.11.0",
+    "vitest": "^5.0.1"
+  }
+}
