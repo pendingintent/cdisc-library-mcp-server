@@ -4,3 +4,4 @@ dist/
 *.mcpb
 .env
 .claudelint-cache/
+.claudelintignore

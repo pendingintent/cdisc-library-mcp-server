@@ -13,7 +13,9 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
-    "package:mcpb": "npm run build && node scripts/build-bundle.mjs"
+    "package:mcpb": "npm run build && node scripts/build-bundle.mjs",
+    "lint:claude": "claudelint check-all",
+    "lint:claude:fix": "claudelint format --fix"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
