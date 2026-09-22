@@ -18,21 +18,19 @@ Biomedical Concepts.
 
 ## Requirements
 
-- Python 3.11+
+- Node.js 18+
 - A CDISC Library API key (see Setup below)
 
 ## Setup
 
 1. Get an API key from https://library.cdisc.org (account settings).
-2. Create a virtualenv and install the project:
+2. Install dependencies:
 
    ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -e ".[dev]"
+   npm install
    ```
 
-3. Copy `env.example` to `.env` and set `CDISC_API_KEY`.
+3. Copy `.env.example` to `.env` and set `CDISC_API_KEY`.
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
@@ -42,7 +40,8 @@ Biomedical Concepts.
 ## Running standalone
 
 ```bash
-python -m cdisc_library_mcp_server
+npm run build
+npm start
 ```
 
 This starts the server on stdio and is mainly useful for manual smoke-testing;
@@ -50,12 +49,13 @@ in normal use an MCP client launches it for you (see below).
 
 ## Using it from Claude Code
 
-Register the server, pointing at this project's venv Python:
+Build the project, then register it:
 
 ```bash
+npm run build
 claude mcp add cdisc-library \
   --env CDISC_API_KEY=your-api-key-here \
-  -- /path/to/cdisc-library-mcp-server/.venv/bin/python -m cdisc_library_mcp_server
+  -- node /path/to/cdisc-library-mcp-server/dist/index.js
 ```
 
 Or add it directly to `.mcp.json` / `claude_desktop_config.json`:
@@ -64,8 +64,8 @@ Or add it directly to `.mcp.json` / `claude_desktop_config.json`:
 {
   "mcpServers": {
     "cdisc-library": {
-      "command": "/path/to/cdisc-library-mcp-server/.venv/bin/python",
-      "args": ["-m", "cdisc_library_mcp_server"],
+      "command": "node",
+      "args": ["/path/to/cdisc-library-mcp-server/dist/index.js"],
       "env": { "CDISC_API_KEY": "your-api-key-here" }
     }
   }
@@ -75,19 +75,22 @@ Or add it directly to `.mcp.json` / `claude_desktop_config.json`:
 ## Development
 
 ```bash
-pytest          # run tests
-ruff check .    # lint
+npm run build   # compile TypeScript to dist/
+npm test        # run the vitest suite
+npm run dev     # run src/index.ts directly via tsx, for iteration
 ```
 
 ## Project structure
 
 ```
-src/cdisc_library_mcp_server/
-  config.py   # Settings from CDISC_API_KEY / CDISC_LIBRARY_BASE_URL
-  client.py   # CDISCLibraryClient — async httpx wrapper around the API
-  server.py   # MCPServer instance and @mcp.tool() definitions
-tests/
-  test_client.py   # CDISCLibraryClient tests, HTTP mocked with respx
+src/
+  config.ts   # Settings from CDISC_API_KEY / CDISC_LIBRARY_BASE_URL
+  client.ts   # CDISCLibraryClient — thin fetch()-based wrapper around the API
+  index.ts    # McpServer instance and registerTool() definitions
+test/
+  client.test.ts   # CDISCLibraryClient tests, HTTP mocked with undici's MockAgent
+scripts/
+  build-bundle.mjs   # stages and packs the MCPB bundle (see Packaging below)
 ```
 
 ## API notes
@@ -109,6 +112,30 @@ For the first packaged version (MCPB), this server is distributed as a
 own `CDISC_API_KEY`, which matches per-user CDISC Library entitlements more
 directly than a single centrally-held key would. Revisit remote hosting later
 if that licensing model changes.
+
+The server is implemented in TypeScript/Node rather than Python specifically
+so it can ship as an MCPB: Claude Desktop bundles a Node.js runtime on macOS
+and Windows, so a Node-based extension installs with no separate runtime
+dependency, unlike Python (which would need either the `uv` runtime or a
+per-platform vendored build).
+
+## Packaging (MCPB)
+
+```bash
+npm run package:mcpb
+```
+
+This builds the project, stages a clean bundle directory (`.mcpb-build/`,
+gitignored) containing the compiled server plus only its production
+dependencies, validates `manifest.json` against the MCPB schema, and packs
+everything into `cdisc-library-mcp-server.mcpb` at the repo root using the
+[`@anthropic-ai/mcpb`](https://github.com/modelcontextprotocol/mcpb) CLI.
+
+To install it: open Claude Desktop → Settings → Extensions → Advanced settings →
+Install Extension, and select the generated `.mcpb` file. You'll be prompted
+for your CDISC Library API key, which Claude Desktop stores using OS-level
+secure storage (Keychain on macOS, Credential Manager on Windows) rather than
+in a plaintext config file.
 
 ## License
 
