@@ -22,8 +22,9 @@ beforeEach(() => {
   setGlobalDispatcher(agent);
 });
 
-afterEach(() => {
+afterEach(async () => {
   agent.assertNoPendingInterceptors();
+  await agent.close();
 });
 
 function client(): CDISCLibraryClient {
@@ -104,14 +105,28 @@ test("search_biomedical_concepts filters by title", async () => {
 });
 
 test("the BC catalog is fetched once per client", async () => {
+  let callCount = 0;
   agent
     .get("https://library.cdisc.org")
-    .intercept({ path: "/api/cosmos/v2/mdr/bc/biomedicalconcepts", method: "GET" })
-    .reply(200, BC_CATALOG);
+    .intercept({
+      path: "/api/cosmos/v2/mdr/bc/biomedicalconcepts",
+      method: "GET",
+      headers: () => {
+        callCount += 1;
+        return true;
+      },
+    })
+    .reply(200, BC_CATALOG)
+    // a single interceptor is one-shot by default; allow it to match again so a
+    // regression (catalog re-fetched) surfaces as a wrong call count rather than
+    // an unrelated "no matching interceptor" error.
+    .persist();
 
   const c = client();
   await c.searchBiomedicalConcepts("blood pressure");
   await c.searchBiomedicalConcepts("heart rate");
+
+  expect(callCount).toBe(1);
 });
 
 test("get_biomedical_concept resolves an href from the catalog", async () => {

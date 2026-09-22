@@ -15,6 +15,9 @@ export function loadSettings(): Settings {
         "https://library.cdisc.org and set it in the environment or a .env file."
     );
   }
-  const baseUrl = process.env.CDISC_LIBRARY_BASE_URL ?? DEFAULT_BASE_URL;
+  // `||` (not `??`) deliberately also falls back on an empty string: the MCPB manifest
+  // maps this from an optional user_config field, and if a user leaves it blank, the
+  // host may substitute "" into the env var rather than omitting it entirely.
+  const baseUrl = process.env.CDISC_LIBRARY_BASE_URL || DEFAULT_BASE_URL;
   return { apiKey, baseUrl };
 }

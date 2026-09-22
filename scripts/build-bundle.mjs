@@ -15,6 +15,8 @@ mkdirSync(fileURLToPath(new URL("server", stageDir)), { recursive: true });
 
 cpSync(fileURLToPath(new URL("../dist", import.meta.url)), fileURLToPath(new URL("server", stageDir)), {
   recursive: true,
+  // .d.ts/.map files aren't needed at runtime and just add dead weight to the bundle.
+  filter: (src) => !src.endsWith(".d.ts") && !src.endsWith(".map"),
 });
 cpSync(fileURLToPath(new URL("../manifest.json", import.meta.url)), fileURLToPath(new URL("manifest.json", stageDir)));
 
@@ -35,14 +37,14 @@ execFileSync("npm", ["install", "--omit=dev", "--no-audit", "--no-fund"], {
 });
 
 console.log("Validating manifest ...");
-execFileSync("npx", ["--yes", "@anthropic-ai/mcpb", "validate", "manifest.json"], {
+execFileSync("npx", ["--no-install", "@anthropic-ai/mcpb", "validate", "manifest.json"], {
   cwd: stagePath,
   stdio: "inherit",
 });
 
 const outFile = `${rootPkg.name}.mcpb`;
 console.log(`Packing ${outFile} ...`);
-execFileSync("npx", ["--yes", "@anthropic-ai/mcpb", "pack", stagePath, `${root}${outFile}`], {
+execFileSync("npx", ["--no-install", "@anthropic-ai/mcpb", "pack", stagePath, `${root}${outFile}`], {
   stdio: "inherit",
 });
 

@@ -85,6 +85,9 @@ export class CDISCLibraryClient {
         "api-key": this.settings.apiKey,
         Accept: "application/json",
       },
+      // undici's fetch defaults to a 300s body/headers timeout; match httpx's 30s instead
+      // so a stalled API response doesn't hang an MCP tool call for minutes.
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!response.ok) {
