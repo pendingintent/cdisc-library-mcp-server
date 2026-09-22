@@ -1,0 +1,44 @@
+{
+  "manifest_version": "0.3",
+  "name": "cdisc-library-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server exposing the CDISC Library API (standards metadata, controlled terminology, biomedical concepts) to MCP clients.",
+  "author": {
+    "name": "CDISC"
+  },
+  "license": "MIT",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "CDISC_API_KEY": "${user_config.cdisc_api_key}",
+        "CDISC_LIBRARY_BASE_URL": "${user_config.cdisc_library_base_url}"
+      }
+    }
+  },
+  "user_config": {
+    "cdisc_api_key": {
+      "type": "string",
+      "title": "CDISC Library API Key",
+      "description": "Your personal API key from library.cdisc.org (Account Settings).",
+      "sensitive": true,
+      "required": true
+    },
+    "cdisc_library_base_url": {
+      "type": "string",
+      "title": "CDISC Library Base URL",
+      "description": "Override for a non-production CDISC Library API environment.",
+      "default": "https://library.cdisc.org/api",
+      "required": false
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  }
+}
